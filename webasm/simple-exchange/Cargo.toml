@@ -1,0 +1,15 @@
+[package]
+name = "simple-exchange-wasm"
+version = "0.1.0"
+edition = "2021"
+authors = [ "Shinichi Hanayama <hanatyan@opensphere.co.jp>"]
+description = "Simple exchange transaction"
+license = "MIT/Apache-2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"

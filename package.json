@@ -1,0 +1,29 @@
+{
+  "name": "smart-transaction-poc",
+  "version": "0.1.0",
+  "description": "Smart Transaction for Symbol PoC",
+  "main": "dist/index.js",
+  "author": "Shinichi Hanayama <hanatyan@opensphere.co.jp>",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "js-base64": "^3.7.3",
+    "js-sha3": "https://github.com/Propine/js-sha3.git",
+    "metal-on-symbol": "^0.1.16",
+    "rxjs": "^7.6.0",
+    "simple-exchange-wasm": "file:./webasm/simple-exchange/pkg",
+    "symbol-sdk": "^2.0.3"
+  },
+  "devDependencies": {
+    "rimraf": "^3.0.2",
+    "typescript": "^4.9.4"
+  },
+  "scripts": {
+    "clean": "rimraf dist && rimraf webasm/simple-exchange/pkg && rimraf webasm/simple-exchange/target",
+    "build-wasm": "cd webasm/simple-exchange && wasm-pack build --target web && node tweak-package-json.js && yarn && yarn upgrade simple-exchange-wasm",
+    "deploy-wasm": "metal forge -o src/metal.json webasm/simple-exchange/pkg/simple_exchange_wasm_bg.wasm",
+    "build": "tsc"
+  },
+  "type": "module"
+}
