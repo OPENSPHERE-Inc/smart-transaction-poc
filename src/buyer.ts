@@ -9,6 +9,8 @@ import {SmartTransactionService} from "./services/SmartTransactionService.js";
 import {Account} from "symbol-sdk";
 
 
+const buyAmount = 2.0;
+
 assert(process.env.BUYER_PRIVATE_KEY);
 const buyerPrivateKey = process.env.BUYER_PRIVATE_KEY;
 
@@ -34,7 +36,7 @@ const main = async () => {
     // Execute smart transaction
     console.log("Executing smart transaction.");
     await init(smartTx.payload);
-    const result = await exchange(buyerAccount.publicKey, 2.0);
+    const result = await exchange(buyerAccount.publicKey, buyAmount);
     if (!result) {
         throw new Error("Smart transaction execution failed.");
     }
@@ -43,7 +45,7 @@ const main = async () => {
     console.log("Announcing call transaction.");
     const callData = {
         method_name: "exchange",
-        arguments: [ buyerAccount.publicKey, 2.0 ],
+        arguments: [ buyerAccount.publicKey, buyAmount ],
     };
     await SmartTransactionService.call(callData);
 };
