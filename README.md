@@ -214,7 +214,7 @@ metal forge  -o src/metal.json  webasm/simple-exchange/pkg/simple_exchange_wasm_
 #### 7) Node.js プログラムのビルド
 
 ```shell
-tsc
+yarn build
 ```
 
 #### 8) プログラムの実行
