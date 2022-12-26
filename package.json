@@ -10,7 +10,7 @@
     "dotenv": "^16.0.3",
     "js-base64": "^3.7.3",
     "js-sha3": "https://github.com/Propine/js-sha3.git",
-    "metal-on-symbol": "^0.1.16",
+    "metal-on-symbol": "^0.2.4",
     "rxjs": "^7.6.0",
     "simple-exchange-wasm": "file:./webasm/simple-exchange/pkg",
     "symbol-sdk": "^2.0.3"

@@ -18,7 +18,9 @@ extern {
 #[wasm_bindgen]
 extern {
     // Many Symbol libs should be provided.
+    #[wasm_bindgen(js_namespace = symbolLibrary)]
     async fn getAccountBalance(account: &str, mosaic_id: &str) -> JsValue;
+    #[wasm_bindgen(js_namespace = symbolLibrary)]
     async fn transferMosaic(from: &str, to: &str, mosaic_id: &str, amount: f64, message: &str);
 }
 

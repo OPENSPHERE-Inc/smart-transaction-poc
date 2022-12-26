@@ -5,8 +5,8 @@ import metal from "./metal.json" assert { type: "json" };
 import {Logger, MetalService, SymbolService} from "metal-on-symbol";
 import assert from "assert";
 import init, { exchange } from "simple-exchange-wasm/simple_exchange_wasm.js";
-import {SmartTransactionService} from "./services/SmartTransactionService.js";
-import {Account} from "symbol-sdk";
+import {SmartTransactionService} from "./services";
+import {Account, Deadline} from "symbol-sdk";
 
 
 const buyAmount = 2.0;
@@ -15,11 +15,12 @@ assert(process.env.BUYER_PRIVATE_KEY);
 const buyerPrivateKey = process.env.BUYER_PRIVATE_KEY;
 
 assert(process.env.NODE_URL);
-SymbolService.init({ node_url: process.env.NODE_URL, logging: true })
+const symbolService = new SymbolService({ node_url: process.env.NODE_URL });
+const metalService = new MetalService(symbolService);
 Logger.init({ log_level: Logger.LogLevel.DEBUG });
 
 const main = async () => {
-    const { networkType } = await SymbolService.getNetwork();
+    const { networkType, epochAdjustment } = await symbolService.getNetwork();
 
     // Fetch smart transaction
     console.log(`Loading smart transaction from Metal: ${metal.metalId}`);
@@ -27,11 +28,18 @@ const main = async () => {
     //    payload: fs.readFileSync("./webasm/simple-exchange/pkg/simple_exchange_wasm_bg.wasm"),
     //    targetAddress: Address.createFromPublicKey(metal.targetPublicKey, networkType),
     //};
-    const smartTx = await MetalService.fetchByMetalId(metal.metalId);
+    const smartTx = await metalService.fetchByMetalId(metal.metalId);
 
     // Init smart transaction
     const buyerAccount = Account.createFromPrivateKey(buyerPrivateKey, networkType);
-    await SmartTransactionService.init(buyerAccount, metal.metalId, smartTx.targetAddress);
+    const smartTxService = new SmartTransactionService(
+        symbolService,
+        buyerAccount,
+        metal.metalId,
+        smartTx.targetAddress,
+        Deadline.create(epochAdjustment, 5)
+    );
+    global.symbolLibrary = smartTxService;
 
     // Execute smart transaction
     console.log("Executing smart transaction.");
@@ -47,7 +55,7 @@ const main = async () => {
         method_name: "exchange",
         arguments: [ buyerAccount.publicKey, buyAmount ],
     };
-    await SmartTransactionService.call(callData);
+    await smartTxService.call(callData);
 };
 
 main()

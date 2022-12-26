@@ -257,7 +257,7 @@ Rust コードの深堀はしませんが、`exchange` という関数が JavaSc
 
 上記二つの関数は、後述する JavaScript 側のグローバル関数を呼び出します。
 
-### 3.2. [/src/services/SmartTransactionService.ts](./src/services/SmartTransactionService.ts)
+### 3.2. [/src/services/smarttx.ts](./src/services/smarttx.ts)
 
 #### ・call 関数
 

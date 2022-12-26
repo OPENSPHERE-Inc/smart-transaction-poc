@@ -14,25 +14,30 @@ import {firstValueFrom} from "rxjs";
 import assert from "assert";
 
 
-export namespace SmartTransactionService {
+export interface CallData {
+    method_name: string;
+    arguments: any[];
+}
 
-    export interface CallData {
-        method_name: string;
-        arguments: any[];
-    }
+export interface CallTransactionPayload {
+    type: string;
+    metal_id: string;
+    hash: string;
+    deadline: number;
+    max_fee: string;
+    signer_public_key: string;
+    signature: string;
+    call_data: CallData,
+}
 
-    export interface CallTransactionPayload {
-        type: string;
-        metal_id: string;
-        hash: string;
-        deadline: number;
-        max_fee: string;
-        signer_public_key: string;
-        signature: string;
-        call_data: CallData,
-    }
+export interface SymbolLibrary {
+    getAccountBalance(account: string, mosaic_id: string): Promise<number>;
+    transferMosaic(from: string, to: string, mosaic_id: string, amount: number, message: string): Promise<void>;
+}
 
-    export const isCallTransactionPayload = (value: any): value is CallTransactionPayload =>
+export class SmartTransactionService implements SymbolLibrary {
+    
+    public static isCallTransactionPayload = (value: any): value is CallTransactionPayload =>
         typeof(value.type) !== "undefined" &&
         value.type === "smart" &&
         typeof(value.metal_id) === "string" &&
@@ -43,35 +48,27 @@ export namespace SmartTransactionService {
         typeof(value.signature) === "string" &&
         typeof(value.call_data) === "object";
 
-    let transactions = new Array<InnerTransaction>();
-    let signerAccount: Account;
-    let smartTxMetalId: string;
-    let smartTxCallAddress: Address;
-    let deadline: Deadline;
+    private readonly transactions = new Array<InnerTransaction>();
 
-    export const init = async (account: Account, metalId: string, callAddress: Address, calledDeadline?: number) => {
-        transactions = [];
-        signerAccount = account;
-        smartTxMetalId = metalId;
-        smartTxCallAddress = callAddress;
+    constructor(
+        public readonly symbolService: SymbolService,
+        private readonly signerAccount: Account, 
+        private readonly smartTxMetalId: string,
+        private readonly smartTxCallAddress: Address, 
+        private readonly deadline: Deadline,
+    ) { }
 
-        const { epochAdjustment } = await SymbolService.getNetwork();
-        deadline = calledDeadline
-            ? Deadline.createFromAdjustedValue(calledDeadline)
-            : Deadline.create(epochAdjustment, 5);
-    };
+    public addTx(tx: InnerTransaction) {
+        this.transactions.push(tx);
+    }
 
-    export const addTx = (tx: InnerTransaction) => {
-        transactions.push(tx);
-    };
-
-    const signTx = async (tx: Transaction) => {
-        const { networkGenerationHash } = await SymbolService.getNetwork();
+    private async signTx(tx: Transaction) {
+        const { networkGenerationHash } = await this.symbolService.getNetwork();
 
         const generationHashBytes = Array.from(Convert.hexToUint8(networkGenerationHash));
         const serializedBytes = Array.from(Convert.hexToUint8(tx.serialize()));
         const signature = Transaction.signRawTransaction(
-            signerAccount.privateKey,
+            this.signerAccount.privateKey,
             Uint8Array.from(
                 tx.getSigningBytes(
                     serializedBytes,
@@ -79,14 +76,14 @@ export namespace SmartTransactionService {
                 )
             )
         );
-        const payload = Transaction.preparePayload(Uint8Array.from(serializedBytes), signature, signerAccount.publicKey);
+        const payload = Transaction.preparePayload(Uint8Array.from(serializedBytes), signature, this.signerAccount.publicKey);
         const hash = Transaction.createTransactionHash(payload, generationHashBytes);
 
         return { signature, hash, payload };
-    };
+    }
 
-    const createSignedTx = async (tx: Transaction) => {
-        const { networkGenerationHash, networkType } = await SymbolService.getNetwork();
+    private async createSignedTx(tx: Transaction) {
+        const { networkGenerationHash, networkType } = await this.symbolService.getNetwork();
         const generationHashBytes = Array.from(Convert.hexToUint8(networkGenerationHash));
 
         const payload = tx.serialize();
@@ -94,29 +91,29 @@ export namespace SmartTransactionService {
 
         assert(tx.signer);
         return new SignedTransaction(payload, hash, tx.signer.publicKey, tx.type, networkType);
-    };
+    }
 
-    export const call = async (callData: CallData) => {
-        const { networkGenerationHash, epochAdjustment, networkCurrencyMosaicId, networkType } = await SymbolService.getNetwork();
+    public async call(callData: CallData) {
+        const { networkGenerationHash, epochAdjustment, networkCurrencyMosaicId, networkType } = await this.symbolService.getNetwork();
 
-        const feeMultiplier = await SymbolService.getFeeMultiplier(0.35);
+        const feeMultiplier = await this.symbolService.getFeeMultiplier(0.35);
         const smartyTx = AggregateTransaction.createComplete(
-            deadline,
-            transactions,
+            this.deadline,
+            this.transactions,
             networkType,
             []
         ).setMaxFeeForAggregate(feeMultiplier, 1);
 
-        const { hash, signature } = await signTx(smartyTx);
+        const { hash, signature } = await this.signTx(smartyTx);
 
         // Build call transaction
         const callTxPayload = JSON.stringify({
             type: "smart",
-            metal_id: smartTxMetalId,
+            metal_id: this.smartTxMetalId,
             hash,
-            deadline: deadline.adjustedValue,
+            deadline: this.deadline.adjustedValue,
             max_fee: smartyTx.maxFee.toString(),
-            signer_public_key: signerAccount.publicKey,
+            signer_public_key: this.signerAccount.publicKey,
             signature: Convert.uint8ToHex(signature),
             call_data: callData,
         });
@@ -125,31 +122,31 @@ export namespace SmartTransactionService {
 
         callTxs.push(TransferTransaction.create(
             Deadline.create(epochAdjustment),
-            smartTxCallAddress,
+            this.smartTxCallAddress,
             [ new Mosaic(networkCurrencyMosaicId, UInt64.fromUint(0)) ],
             PlainMessage.create(callTxPayload),
             networkType,
-        ).toAggregate(signerAccount.publicAccount));
+        ).toAggregate(this.signerAccount.publicAccount));
 
-        const signedTx = signerAccount.sign(
-            await SymbolService.composeAggregateCompleteTx(feeMultiplier, 1, callTxs),
+        const signedTx = this.signerAccount.sign(
+            await this.symbolService.composeAggregateCompleteTx(feeMultiplier, 1, callTxs),
             networkGenerationHash
         );
 
-        await SymbolService.announceTxWithCosignatures(signedTx, []);
-        const results = await SymbolService.waitTxsFor(signerAccount, signedTx.hash, "confirmed");
+        await this.symbolService.announceTxWithCosignatures(signedTx, []);
+        const results = await this.symbolService.waitTxsFor(this.signerAccount, signedTx.hash, "confirmed");
         if (results.filter((result) => result.error).length) {
             throw new Error("Failed to announce call transaction.");
         }
-    };
+    }
 
-    export const fulfill = async (callTxPayload: CallTransactionPayload) => {
-        const { networkType } = await SymbolService.getNetwork();
+    public async fulfill(callTxPayload: CallTransactionPayload) {
+        const { networkType } = await this.symbolService.getNetwork();
 
         const callerPubAccount = PublicAccount.createFromPublicKey(callTxPayload.signer_public_key, networkType);
         const smartyTx = AggregateTransaction.createComplete(
-            deadline,
-            transactions,
+            this.deadline,
+            this.transactions,
             networkType,
             [],
             UInt64.fromNumericString(callTxPayload.max_fee),
@@ -157,10 +154,10 @@ export namespace SmartTransactionService {
             callerPubAccount
         );
 
-        const signedTx = await createSignedTx(smartyTx);
-        const cosignature = CosignatureTransaction.signTransactionHash(signerAccount, signedTx.hash);
-        await SymbolService.announceTxWithCosignatures(signedTx, [ cosignature ]);
-        const results = await SymbolService.waitTxsFor(callerPubAccount, signedTx.hash, "confirmed");
+        const signedTx = await this.createSignedTx(smartyTx);
+        const cosignature = CosignatureTransaction.signTransactionHash(this.signerAccount, signedTx.hash);
+        await this.symbolService.announceTxWithCosignatures(signedTx, [ cosignature ]);
+        const results = await this.symbolService.waitTxsFor(callerPubAccount, signedTx.hash, "confirmed");
         if (results.filter((result) => result.error).length) {
             throw new Error("Failed to announce call transaction.");
         }
@@ -168,8 +165,8 @@ export namespace SmartTransactionService {
 
     // WASM Import functions (Symbol libs)
 
-    global.getAccountBalance = async (account: string, mosaic_id: string): Promise<number> => {
-        const { networkType, repositoryFactory } = await SymbolService.getNetwork();
+    public async getAccountBalance(account: string, mosaic_id: string): Promise<number> {
+        const { networkType, repositoryFactory } = await this.symbolService.getNetwork();
         const accountHttp = repositoryFactory.createAccountRepository();
         const mosaicIdObj = new MosaicId(mosaic_id);
 
@@ -179,21 +176,21 @@ export namespace SmartTransactionService {
                     .filter((mosaic) => mosaic.id.equals(mosaicIdObj))
                     .reduce((acc, curr) => acc + Number(curr.amount.toString()), 0)
             );
-    };
+    }
 
-    global.transferMosaic = async (from: string, to: string, mosaic_id: string, amount: number, message: string) => {
-        const { networkType } = await SymbolService.getNetwork();
+    public async transferMosaic(from: string, to: string, mosaic_id: string, amount: number, message: string) {
+        const { networkType } = await this.symbolService.getNetwork();
         const recipientPubAccount = PublicAccount.createFromPublicKey(to, networkType);
         const senderPubAccount = PublicAccount.createFromPublicKey(from, networkType);
 
         const transferTx = TransferTransaction.create(
-            deadline,
+            this.deadline,
             recipientPubAccount.address,
             [ new Mosaic(new MosaicId(mosaic_id), UInt64.fromUint(amount)) ],
             PlainMessage.create(message),
             networkType
         ).toAggregate(senderPubAccount);
 
-        addTx(transferTx);
-    };
+        this.addTx(transferTx);
+    }
 }
