@@ -4,15 +4,16 @@ dotenv.config();
 import {Logger, MetalService, SymbolService} from "metal-on-symbol";
 import assert from "assert";
 import init, { exchange } from "simple-exchange-wasm/simple_exchange_wasm.js";
-import {SmartTransactionService} from "./services/SmartTransactionService.js";
-import {Account, AggregateTransaction, Transaction, TransactionType, TransferTransaction} from "symbol-sdk";
+import {SmartTransactionService} from "./services/index.js";
+import {Account, AggregateTransaction, Deadline, Transaction, TransactionType, TransferTransaction} from "symbol-sdk";
 
 
 assert(process.env.SELLER_PRIVATE_KEY);
 const sellerPrivateKey = process.env.SELLER_PRIVATE_KEY;
 
 assert(process.env.NODE_URL);
-SymbolService.init({ node_url: process.env.NODE_URL, logging: true });
+const symbolService = new SymbolService({ node_url: process.env.NODE_URL });
+const metalService = new MetalService(symbolService);
 Logger.init({ log_level: Logger.LogLevel.DEBUG });
 
 const parseCallTxPayload = (payload: string) => {
@@ -37,7 +38,7 @@ const handleCallerTx = async (account: Account, tx: TransferTransaction) => {
 
         // Fetch smart transaction
         console.log(`Loading smart transaction from Metal: ${callTxPayload.metal_id}`);
-        const smartTx = await MetalService.fetchByMetalId(callTxPayload.metal_id);
+        const smartTx = await metalService.fetchByMetalId(callTxPayload.metal_id);
 
         // Check smart transaction ownership
         if (!smartTx.targetAddress.equals(account.address)) {
@@ -46,12 +47,14 @@ const handleCallerTx = async (account: Account, tx: TransferTransaction) => {
         }
 
         // Init smart transaction
-        await SmartTransactionService.init(
+        const smartTxService = new SmartTransactionService(
+            symbolService,
             account,
             callTxPayload.metal_id,
             smartTx.targetAddress,
-            callTxPayload.deadline
+            Deadline.createFromAdjustedValue(callTxPayload.deadline),
         );
+        global.symbolLibrary = smartTxService;
 
         // Execute smart transaction
         console.log("Executing smart transaction.");
@@ -64,7 +67,7 @@ const handleCallerTx = async (account: Account, tx: TransferTransaction) => {
 
         // Cosign and announce transaction
         console.log("Validating and fulfilling call of smart transaction.");
-        await SmartTransactionService.fulfill(callTxPayload);
+        await smartTxService.fulfill(callTxPayload);
 
         console.log("Handling of call transaction completed.");
     } catch (e) {
@@ -73,7 +76,7 @@ const handleCallerTx = async (account: Account, tx: TransferTransaction) => {
 };
 
 const main = async () => {
-    const { networkType, repositoryFactory } = await SymbolService.getNetwork();
+    const { networkType, repositoryFactory } = await symbolService.getNetwork();
     const sellerAccount = Account.createFromPrivateKey(sellerPrivateKey, networkType);
 
     const isTransferTransaction =

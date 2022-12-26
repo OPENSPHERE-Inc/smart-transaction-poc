@@ -7,6 +7,20 @@
   resolved "https://registry.yarnpkg.com/@js-joda/core/-/core-3.2.0.tgz#3e61e21b7b2b8a6be746df1335cf91d70db2a273"
   integrity sha512-PMqgJ0sw5B7FKb2d5bWYIoxjri+QlW/Pys7+Rw82jSH0QN3rB05jZ/VrrsUdh1w4+i2kw9JOejXGq/KhDOX7Kg==
 
+"@opensphere-inc/symbol-service@^1.1.5":
+  version "1.1.5"
+  resolved "https://registry.yarnpkg.com/@opensphere-inc/symbol-service/-/symbol-service-1.1.5.tgz#8bff1615cdc64f459a83b9e9ec73dc7f88046e02"
+  integrity sha512-KZALf36eKAUaPnjFkXpmfOZ4J9Uqi8agVXWNTcHtIEorl+BLAOdwncktc7D6+dp4LqNFFNJFI68QoySDvXVCFw==
+  dependencies:
+    dotenv "^16.0.3"
+    js-sha3 "https://github.com/Propine/js-sha3.git"
+    lodash "^4.17.21"
+    long "^5.2.1"
+    moment "^2.29.4"
+    rxjs "^7.6.0"
+    symbol-sdk "^2.0.3"
+    uuid "^9.0.0"
+
 "@types/bn.js@^5.1.0":
   version "5.1.1"
   resolved "https://registry.yarnpkg.com/@types/bn.js/-/bn.js-5.1.1.tgz#b51e1b55920a4ca26e9285ff79936bbdec910682"
@@ -356,6 +370,11 @@ kleur@^3.0.3:
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-3.0.3.tgz#a79c9ecc86ee1ce3fa6206d1216c501f147fc07e"
   integrity sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==
 
+lodash@^4.17.21:
+  version "4.17.21"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
+  integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
+
 long@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/long/-/long-4.0.0.tgz#9a7b71cfb7d361a194ea555241c92f7468d5bf28"
@@ -386,11 +405,12 @@ merkletreejs@^0.2.9:
     treeify "^1.1.0"
     web3-utils "^1.3.4"
 
-metal-on-symbol@^0.1.16:
-  version "0.1.17"
-  resolved "https://registry.yarnpkg.com/metal-on-symbol/-/metal-on-symbol-0.1.17.tgz#ce9e43c45238afc11a2602b7cab8025f52fceee3"
-  integrity sha512-qbUTozW8IL0R6Lw+Hstpb7JHJIgvAKrZQ8Dqcvjaq+ZORWtBE4H2KwZXzT0PvN91LEQRPaYIb2LuaX2I9A1T6w==
+metal-on-symbol@^0.2.4:
+  version "0.2.4"
+  resolved "https://registry.yarnpkg.com/metal-on-symbol/-/metal-on-symbol-0.2.4.tgz#2c4ac2d105ede8504864ee4399e284920776ff9d"
+  integrity sha512-Zmr9AnjeF/LhPLyvRiASmaZWuvktufFq9xY2WzWEiCEkL2LlZRZCB6ApyqHBMvnTN9rddWhNbcYU4lTXxq59hA==
   dependencies:
+    "@opensphere-inc/symbol-service" "^1.1.5"
     bs58 "^5.0.0"
     dotenv "^16.0.3"
     js-base64 "^3.7.3"
