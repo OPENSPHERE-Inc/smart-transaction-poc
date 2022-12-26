@@ -4,7 +4,7 @@ dotenv.config();
 import {Logger, MetalService, SymbolService} from "metal-on-symbol";
 import assert from "assert";
 import init, { exchange } from "simple-exchange-wasm/simple_exchange_wasm.js";
-import {SmartTransactionService} from "./services";
+import {SmartTransactionService} from "./services/index.js";
 import {Account, AggregateTransaction, Deadline, Transaction, TransactionType, TransferTransaction} from "symbol-sdk";
 
 

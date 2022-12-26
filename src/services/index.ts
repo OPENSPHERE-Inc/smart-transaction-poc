@@ -1,1 +1,1 @@
-export * from "./smarttx";
+export * from "./smarttx.js";

@@ -5,7 +5,7 @@ import metal from "./metal.json" assert { type: "json" };
 import {Logger, MetalService, SymbolService} from "metal-on-symbol";
 import assert from "assert";
 import init, { exchange } from "simple-exchange-wasm/simple_exchange_wasm.js";
-import {SmartTransactionService} from "./services";
+import {SmartTransactionService} from "./services/index.js";
 import {Account, Deadline} from "symbol-sdk";
 
 
