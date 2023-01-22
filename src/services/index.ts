@@ -1,1 +1,1 @@
-export * from "./SmartTransactionService.js";
+export * from "./smarttx.js";
